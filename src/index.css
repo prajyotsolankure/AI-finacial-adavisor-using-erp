@@ -1,0 +1,148 @@
+:root {
+  /* Navy Blue Palette (Dominant Enterprise Tone) */
+  --navy-dark: #0a1727;
+  --navy-primary: #0f1e33;
+  --navy-surface: #182a44;
+  --navy-muted: #334b6e;
+
+  /* Accent Blue (Used selectively where important) */
+  --primary-color: #207bff;
+  --secondary-accent: #4ea5ff;
+  --bg-base: #f5f7fa;
+  --card-bg: #ffffff;
+  
+  /* Neutral Palette */
+  --text-primary: #0a1727;
+  --text-secondary: #334458;
+  --text-muted: #7e8d9f;
+  --border-subtle: #e2e8f0;
+  --border-light: #f1f5f9;
+  
+  /* Status Colors */
+  --status-online: #10b981;
+  --status-online-glow: rgba(16, 185, 129, 0.25);
+  --status-warning: #f59e0b;
+  --status-danger: #ef4444;
+  
+  /* Accents & Highlights */
+  --primary-light: rgba(32, 123, 255, 0.08);
+  --primary-glow: rgba(32, 123, 255, 0.2);
+  --secondary-light: rgba(78, 165, 255, 0.12);
+  
+  /* Shadows & Radius */
+  --card-radius: 12px;
+  --button-radius: 10px;
+  --badge-radius: 6px;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-glow: 0 4px 14px rgba(32, 123, 255, 0.25);
+  
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', var(--font-family);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Base button and interactive styling */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+input, textarea {
+  font-family: inherit;
+  outline: none;
+}
+
+/* Card standard utility */
+.card-container {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-container:hover {
+  border-color: #cbd5e1;
+}
+
+/* Badge styling */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--badge-radius);
+}
+
+.badge-primary {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.badge-secondary {
+  background: var(--secondary-light);
+  color: var(--secondary-accent);
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
