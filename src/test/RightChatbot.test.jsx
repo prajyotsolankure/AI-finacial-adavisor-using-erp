@@ -4,10 +4,10 @@ import { describe, it, expect } from 'vitest';
 import RightChatbot from '../components/RightChatbot/RightChatbot';
 
 describe('RightChatbot Component', () => {
-  it('renders online status header with "AI Engine: Connected via Groq + MCP"', () => {
+  it('renders online status header with "AI Engine: Connected via Gemini + MongoDB"', () => {
     render(<RightChatbot activeContextId="finance" />);
 
-    expect(screen.getByText('AI Engine: Connected via Groq + MCP')).toBeInTheDocument();
+    expect(screen.getByText('AI Engine: Connected via Gemini + MongoDB')).toBeInTheDocument();
   });
 
   it('renders initial required formatted dialogue sequence', () => {
@@ -57,11 +57,52 @@ describe('RightChatbot Component', () => {
     // Verify thinking indicator appears
     expect(screen.getByText(/Analyzing business data.../i)).toBeInTheDocument();
 
-    // Wait for response
+    // Wait for response (handles either live backend response or fallback)
     await waitFor(() => {
-      expect(
-        screen.getByText(/Reconciled OPEX and marketing spend via MCP server/i)
-      ).toBeInTheDocument();
-    }, { timeout: 2000 });
+      const matchedElements = screen.getAllByText((content, element) => {
+        return Boolean(element?.textContent && /operating expenditures|query_operating_spend|Reconciled OPEX/i.test(element.textContent));
+      });
+      expect(matchedElements.length).toBeGreaterThan(0);
+    }, { timeout: 4000 });
+  });
+
+  it('supports minimizing to rail and restoring back to normal view', () => {
+    render(<RightChatbot activeContextId="finance" />);
+
+    // Click minimize button
+    const minimizeBtn = screen.getByRole('button', { name: /minimize chat/i });
+    fireEvent.click(minimizeBtn);
+
+    // Verify minimized state
+    expect(screen.getByRole('button', { name: /expand ai advisor/i })).toBeInTheDocument();
+    expect(screen.getByText('AI Financial Advisor')).toBeInTheDocument();
+
+    // Click expand button
+    const expandBtn = screen.getByRole('button', { name: /expand ai advisor/i });
+    fireEvent.click(expandBtn);
+
+    // Verify restored back to normal
+    expect(screen.getByText('AI Engine: Connected via Gemini + MongoDB')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Ask a question about your business data...')).toBeInTheDocument();
+  });
+
+  it('supports maximizing and restoring back to normal view', () => {
+    const { container } = render(<RightChatbot activeContextId="finance" />);
+
+    const chatbotElement = container.querySelector('#right-chatbot-column');
+    expect(chatbotElement).toHaveClass('normal');
+
+    // Click maximize button
+    const maximizeBtn = screen.getByRole('button', { name: /maximize chat/i });
+    fireEvent.click(maximizeBtn);
+
+    expect(chatbotElement).toHaveClass('maximized');
+
+    // Click restore button
+    const restoreBtn = screen.getByRole('button', { name: /restore normal size/i });
+    fireEvent.click(restoreBtn);
+
+    expect(chatbotElement).toHaveClass('normal');
   });
 });
+

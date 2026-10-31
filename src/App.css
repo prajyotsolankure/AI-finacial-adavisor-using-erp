@@ -15,8 +15,13 @@
     flex: 1;
     min-width: 0;
   }
-  .right-chatbot {
+  .right-chatbot:not(.minimized):not(.maximized) {
     width: 320px;
     min-width: 280px;
   }
+  .right-chatbot.maximized {
+    width: 55%;
+    min-width: 420px;
+  }
+
 }

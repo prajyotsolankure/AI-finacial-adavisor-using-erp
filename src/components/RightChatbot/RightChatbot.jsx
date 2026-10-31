@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './RightChatbot.css';
-import { Send, Bot, User, Sparkles } from 'lucide-react';
+import { Send, Bot, Sparkles, Minus, Maximize2, Minimize2, ChevronLeft } from 'lucide-react';
 
 const INITIAL_MESSAGES = [
   {
@@ -14,11 +14,16 @@ const INITIAL_MESSAGES = [
     sender: 'bot',
     text: 'Analyzing sales_data table via MCP server... Generating dynamic chart.',
     timestamp: '10:42 AM',
-    insight: 'FY2026 revenue is pacing at $18.42M ARR (+22.4% YoY) with December projected as top month at $790K.'
+    insight: 'FY2026 revenue is pacing at $18.42M ARR (+22.4% YoY) with December projected as top month at $790K.',
+    mcpOperation: {
+      operation: 'query_sales_invoices_arr',
+      summary: 'Aggregated 3,500 sales invoices from live MongoDB Atlas cluster.'
+    }
   }
 ];
 
-export default function RightChatbot({ activeContextId }) {
+export default function RightChatbot({ activeContextId, initialViewMode = 'normal' }) {
+  const [viewMode, setViewMode] = useState(initialViewMode); // 'normal' | 'minimized' | 'maximized'
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
@@ -29,10 +34,12 @@ export default function RightChatbot({ activeContextId }) {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isThinking]);
+    if (viewMode !== 'minimized') {
+      scrollToBottom();
+    }
+  }, [messages, isThinking, viewMode]);
 
-  const handleSendMessage = (textToSend) => {
+  const handleSendMessage = async (textToSend) => {
     const query = (textToSend || inputValue).trim();
     if (!query) return;
 
@@ -50,7 +57,33 @@ export default function RightChatbot({ activeContextId }) {
     setInputValue('');
     setIsThinking(true);
 
-    // Clean, direct financial insights
+    try {
+      // Connect to Gemini AI + MongoDB live backend
+      const res = await fetch('http://localhost:5000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, context: activeContextId })
+      });
+      const data = await res.json();
+
+      if (data.success && data.reply) {
+        const botMsg = {
+          id: `bot-${Date.now()}`,
+          sender: 'bot',
+          text: data.reply,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          insight: data.insight || 'Grounded in live MongoDB ERP records',
+          mcpOperation: data.mcp_operation
+        };
+        setMessages((prev) => [...prev, botMsg]);
+        setIsThinking(false);
+        return;
+      }
+    } catch {
+      // Fallback to local financial insights if backend server is not running
+    }
+
+    // Fallback direct financial insights
     setTimeout(() => {
       let botResponse = 'Analyzing sales_data table via MCP server... Generating dynamic chart.';
       let insightText = '';
@@ -79,7 +112,7 @@ export default function RightChatbot({ activeContextId }) {
 
       setMessages((prev) => [...prev, botMsg]);
       setIsThinking(false);
-    }, 600);
+    }, 500);
   };
 
   const handleKeyDown = (e) => {
@@ -90,80 +123,166 @@ export default function RightChatbot({ activeContextId }) {
   };
 
   return (
-    <aside className="right-chatbot" id="right-chatbot-column">
-      {/* Clean Header: Online indicator + text */}
-      <div className="chatbot-header">
-        <div className="status-row">
-          <span className="online-dot" title="Online"></span>
-          <span className="status-title">AI Engine: Connected via Groq + MCP</span>
-        </div>
-      </div>
-
-      {/* Main Chat Body */}
-      <div className="chat-messages-container" id="chat-feed-scroll">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`chat-message-group ${msg.sender}`}>
-            <div className="message-sender-tag">
-              {msg.sender === 'user' ? 'You' : 'ERP AI Advisor'}
+    <aside
+      className={`right-chatbot ${viewMode}`}
+      id="right-chatbot-column"
+      {...(viewMode === 'minimized' ? {
+        onClick: () => setViewMode('normal'),
+        role: 'button',
+        tabIndex: 0,
+        title: 'Click to expand AI Advisor',
+        'aria-label': 'Minimized AI Advisor panel',
+        onKeyDown: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setViewMode('normal');
+          }
+        }
+      } : {})}
+    >
+      {viewMode === 'minimized' ? (
+        <div className="minimized-rail-container">
+          <div className="minimized-rail-top">
+            <button
+              className="minimized-toggle-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setViewMode('normal');
+              }}
+              title="Expand AI Advisor"
+              aria-label="Expand AI Advisor"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <div className="minimized-bot-badge">
+              <Bot size={18} />
+              <span className="online-dot minimized-status-dot" title="Online"></span>
             </div>
+          </div>
 
-            {msg.sender === 'user' ? (
-              <div className="user-bubble">
-                {msg.text}
-              </div>
-            ) : (
-              <div className="bot-bubble">
-                <div className="bot-text-main">{msg.text}</div>
-                {msg.insight && (
-                  <div className="chat-insight-box">
-                    {msg.insight}
+          <div className="minimized-rail-middle">
+            <span className="minimized-title-text">AI Financial Advisor</span>
+          </div>
+
+          <div className="minimized-rail-bottom">
+            <span className="minimized-count-badge" title={`${messages.length} messages`}>
+              {messages.length}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Header: Online indicator + Window controls */}
+          <div className="chatbot-header">
+            <div className="status-row">
+              <span className="online-dot" title="Online"></span>
+              <span className="status-title">AI Engine: Connected via Gemini + MongoDB</span>
+            </div>
+            <div className="chatbot-header-actions">
+              {viewMode === 'maximized' ? (
+                <button
+                  className="chatbot-action-btn"
+                  onClick={() => setViewMode('normal')}
+                  title="Restore normal size"
+                  aria-label="Restore normal size"
+                >
+                  <Minimize2 size={14} />
+                </button>
+              ) : (
+                <button
+                  className="chatbot-action-btn"
+                  onClick={() => setViewMode('maximized')}
+                  title="Maximize chat"
+                  aria-label="Maximize chat"
+                >
+                  <Maximize2 size={14} />
+                </button>
+              )}
+              <button
+                className="chatbot-action-btn"
+                onClick={() => setViewMode('minimized')}
+                title="Minimize chat"
+                aria-label="Minimize chat"
+              >
+                <Minus size={15} />
+              </button>
+            </div>
+          </div>
+
+          {/* Main Chat Body */}
+          <div className="chat-messages-container" id="chat-feed-scroll">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`chat-message-group ${msg.sender}`}>
+                <div className="message-sender-tag">
+                  {msg.sender === 'user' ? 'You' : 'ERP AI Advisor'}
+                </div>
+
+                {msg.sender === 'user' ? (
+                  <div className="user-bubble">
+                    {msg.text}
+                  </div>
+                ) : (
+                  <div className="bot-bubble">
+                    <div className="bot-text-main">{msg.text}</div>
+                    {msg.mcpOperation && (
+                      <div className="chat-mcp-box">
+                        <span className="mcp-badge-pill">MCP Database Tool: {msg.mcpOperation.operation}</span>
+                        <span className="mcp-desc">{msg.mcpOperation.summary}</span>
+                      </div>
+                    )}
+                    {msg.insight && (
+                      <div className="chat-insight-box">
+                        {msg.insight}
+                      </div>
+                    )}
                   </div>
                 )}
+
+                <span className="message-timestamp">{msg.timestamp}</span>
+              </div>
+            ))}
+
+            {isThinking && (
+              <div className="chat-message-group bot">
+                <div className="message-sender-tag">ERP AI Advisor</div>
+                <div className="bot-thinking-bubble">
+                  <span className="typing-dot"></span>
+                  <span className="typing-dot"></span>
+                  <span className="typing-dot"></span>
+                  <span className="thinking-text">Analyzing business data...</span>
+                </div>
               </div>
             )}
 
-            <span className="message-timestamp">{msg.timestamp}</span>
+            <div ref={messagesEndRef} />
           </div>
-        ))}
 
-        {isThinking && (
-          <div className="chat-message-group bot">
-            <div className="message-sender-tag">ERP AI Advisor</div>
-            <div className="bot-thinking-bubble">
-              <span className="typing-dot"></span>
-              <span className="typing-dot"></span>
-              <span className="typing-dot"></span>
-              <span className="thinking-text">Analyzing business data...</span>
+          {/* Clean Bottom Footer */}
+          <div className="chatbot-footer">
+            <div className="chat-input-wrapper">
+              <input
+                type="text"
+                className="chat-text-input"
+                id="chat-query-input"
+                placeholder="Ask a question about your business data..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <button
+                className="chat-send-btn"
+                id="chat-send-button"
+                title="Send query"
+                aria-label="Send query"
+                disabled={!inputValue.trim() || isThinking}
+                onClick={() => handleSendMessage()}
+              >
+                <Send size={14} />
+              </button>
             </div>
           </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Clean Bottom Footer */}
-      <div className="chatbot-footer">
-        <div className="chat-input-wrapper">
-          <input
-            type="text"
-            className="chat-text-input"
-            id="chat-query-input"
-            placeholder="Ask a question about your business data..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <button
-            className="chat-send-btn"
-            id="chat-send-button"
-            title="Send query"
-            disabled={!inputValue.trim() || isThinking}
-            onClick={() => handleSendMessage()}
-          >
-            <Send size={14} />
-          </button>
-        </div>
-      </div>
+        </>
+      )}
     </aside>
   );
 }

@@ -1,6 +1,7 @@
 import os
 import sys
 import urllib.parse
+import certifi
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
@@ -32,16 +33,32 @@ def build_connection_uri(uri: str = None, password: str = None) -> str:
 
     return conn_uri
 
+_shared_client = None
+
 def get_mongo_client(uri: str = None, password: str = None) -> MongoClient:
     """
-    Creates and returns a MongoClient instance.
+    Creates and returns a cached, connection-pooled MongoClient instance.
     """
+    global _shared_client
+    if _shared_client is not None:
+        try:
+            _shared_client.admin.command("ping")
+            return _shared_client
+        except Exception:
+            _shared_client = None
+
     connection_string = build_connection_uri(uri, password)
-    return MongoClient(
+    _shared_client = MongoClient(
         connection_string,
+        tlsCAFile=certifi.where(),
         server_api=ServerApi('1'),
-        serverSelectionTimeoutMS=5000
+        serverSelectionTimeoutMS=10000,
+        connectTimeoutMS=10000,
+        socketTimeoutMS=15000,
+        maxPoolSize=20,
+        minPoolSize=1
     )
+    return _shared_client
 
 def test_connection(uri: str = None, password: str = None) -> bool:
     """
